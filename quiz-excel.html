@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --orange:#f5a623;--orange-dark:#d4891a;
+  --orange-glow:rgba(245,166,35,.18);
+  --bg:#fafaf8;--surface:#fff;--surface-alt:#f4f3ef;
+  --border:#e8e6e0;--text:#1a1a1a;--text-dim:#6b6b6b;
+  --correct:#2ecc71;--correct-bg:rgba(46,204,113,.08);--correct-border:rgba(46,204,113,.35);
+  --wrong:#e74c3c;--wrong-bg:rgba(231,76,60,.08);--wrong-border:rgba(231,76,60,.35);
+  --flag:#e67e22;--flag-bg:rgba(230,126,34,.1);--flag-border:rgba(230,126,34,.35);
+  --radius:12px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.04);
+  --shadow-lg:0 4px 24px rgba(0,0,0,.08);
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+.quiz-wrapper{max-width:740px;margin:0 auto;padding:24px 20px 60px;transition:all .3s}
+body.is-fullscreen .quiz-wrapper{max-width:900px;padding:32px 40px 60px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:var(--radius);font-family:'Plus Jakarta Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;border:1.5px solid var(--border);background:var(--surface);color:var(--text)}
+.btn:hover{border-color:var(--orange);color:var(--orange);transform:translateY(-1px);box-shadow:var(--shadow)}
+.btn.primary{background:linear-gradient(135deg,var(--orange),var(--orange-dark));color:#fff;border-color:transparent}
+.btn.primary:hover{box-shadow:0 4px 16px rgba(245,166,35,.35)}
+.btn.small{padding:8px 16px;font-size:.82rem;border-radius:8px}
+.btn.icon-btn{padding:8px 12px;min-width:38px;justify-content:center}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--text-dim)}
+.btn.ghost:hover{background:var(--surface-alt);color:var(--text);border-color:var(--border)}
+.screen{display:none;animation:fadeIn .4s ease}.screen.active{display:block}
+.loading-screen{text-align:center;padding:80px 24px}
+.loading-screen .spinner-lg{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 20px}
+.loading-screen p{color:var(--text-dim);font-size:.95rem}
+.error-box{margin-top:24px;padding:16px 20px;background:var(--wrong-bg);border:1px solid var(--wrong-border);border-radius:10px;color:var(--wrong);font-size:.88rem;max-width:500px;margin-left:auto;margin-right:auto}
+.setup-hero{text-align:center;padding:48px 24px;background:var(--surface);border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.setup-hero .icon{font-size:3rem;margin-bottom:16px}
+.setup-hero h2{font-family:'Outfit',sans-serif;font-size:1.8rem;font-weight:800;margin-bottom:8px}
+.setup-hero p{color:var(--text-dim);margin-bottom:28px;font-size:.95rem}
+.setup-stats{display:flex;gap:12px;justify-content:center;margin-bottom:32px;flex-wrap:wrap}
+.stat-chip{background:var(--surface-alt);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:.85rem;font-weight:600;color:var(--text-dim)}
+.stat-chip span{color:var(--orange)}
+.setup-grid{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.flagged-tile{margin-top:20px;padding:18px 24px;background:var(--flag-bg);border:1.5px solid var(--flag-border);border-radius:var(--radius);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px;justify-content:center}
+.flagged-tile:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.flagged-tile .ft-icon{font-size:1.4rem}.flagged-tile .ft-text{font-weight:700;color:var(--flag)}
+.flagged-tile .ft-count{background:var(--flag);color:#fff;font-size:.78rem;font-weight:700;padding:2px 10px;border-radius:12px;margin-left:4px}
+.flagged-tile.empty{opacity:.45;cursor:default;pointer-events:none}
+.quiz-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:8px;flex-wrap:wrap}
+.quiz-toolbar-left{display:flex;gap:6px;align-items:center}
+.quiz-toolbar-right{display:flex;gap:6px;align-items:center}
+.progress-section{margin-bottom:20px}
+.progress-text{font-size:.78rem;font-weight:600;color:var(--text-dim);margin-bottom:6px;display:flex;justify-content:space-between}
+.progress-track{height:5px;background:var(--surface-alt);border-radius:3px;overflow:hidden;border:1px solid var(--border)}
+.progress-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--orange),var(--orange-dark));transition:width .4s ease}
+.score-pill{background:var(--orange-glow);border:1.5px solid rgba(245,166,35,.3);color:var(--orange-dark);font-weight:700;font-size:.85rem;padding:6px 16px;border-radius:20px;white-space:nowrap}
+.question-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;margin-bottom:16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.question-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--orange),var(--orange-dark))}
+.question-card.flagged{border-color:var(--flag-border);background:linear-gradient(180deg,var(--flag-bg),var(--surface) 60px)}
+.question-card.flagged::before{background:var(--flag)}
+.q-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:12px}
+.q-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--orange);display:flex;align-items:center;gap:6px}
+.q-label::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--orange);display:inline-block}
+.flag-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-dim);font-family:'Plus Jakarta Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;flex-shrink:0}
+.flag-btn:hover{border-color:var(--flag);color:var(--flag)}
+.flag-btn.is-flagged{background:var(--flag);color:#fff;border-color:var(--flag)}
+.flag-btn svg{width:16px;height:16px}
+.q-text{font-family:'Outfit',sans-serif;font-size:1.2rem;font-weight:600;line-height:1.5}
+.answers-grid{display:flex;flex-direction:column;gap:8px}
+.answer-btn{width:100%;text-align:left;padding:16px 20px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:.92rem;cursor:pointer;transition:all .2s;display:flex;align-items:flex-start;gap:14px;line-height:1.5}
+.answer-btn:hover:not(:disabled){border-color:var(--orange);background:var(--orange-glow);transform:translateX(4px)}
+.answer-btn .badge{min-width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78rem;flex-shrink:0;background:var(--surface-alt);border:1px solid var(--border);color:var(--text-dim);transition:all .2s;margin-top:1px}
+.answer-btn:hover:not(:disabled) .badge{background:var(--orange);color:#fff;border-color:var(--orange)}
+.answer-btn:disabled{cursor:default;transform:none}
+.answer-btn.is-correct{background:var(--correct-bg);border-color:var(--correct-border)}
+.answer-btn.is-correct .badge{background:var(--correct);color:#fff;border-color:var(--correct)}
+.answer-btn.is-wrong{background:var(--wrong-bg);border-color:var(--wrong-border)}
+.answer-btn.is-wrong .badge{background:var(--wrong);color:#fff;border-color:var(--wrong)}
+.feedback-bar{margin-top:14px;padding:14px 20px;border-radius:10px;font-size:.88rem;font-weight:600;animation:fadeIn .3s ease;display:flex;align-items:center;gap:10px}
+.feedback-bar.correct{background:var(--correct-bg);border:1px solid var(--correct-border);color:#1a8a4a}
+.feedback-bar.wrong{background:var(--wrong-bg);border:1px solid var(--wrong-border);color:#c0392b}
+.nav-row{margin-top:18px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.nav-row-left{display:flex;gap:8px}.nav-row-right{display:flex;gap:8px}
+.results-card{text-align:center;background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:48px 32px;box-shadow:var(--shadow-lg);position:relative;overflow:hidden}
+.results-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--orange),var(--correct),var(--orange))}
+.results-icon{font-size:3.5rem;margin-bottom:12px}
+.results-card h2{font-family:'Outfit',sans-serif;font-size:1.6rem;font-weight:800;margin-bottom:4px}
+.score-display{font-family:'Outfit',sans-serif;font-size:3.2rem;font-weight:800;background:linear-gradient(135deg,var(--orange),var(--orange-dark));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:12px 0}
+.score-subtitle{color:var(--text-dim);font-size:.95rem;margin-bottom:28px}
+.results-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.review-section{margin-top:32px;text-align:left}
+.review-section h3{font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:16px;color:var(--text-dim)}
+.review-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin-bottom:8px;border-left:3px solid var(--border)}
+.review-item.ok{border-left-color:var(--correct)}.review-item.fail{border-left-color:var(--wrong)}
+.review-q{font-weight:600;margin-bottom:6px;font-size:.92rem}
+.review-a{font-size:.84rem;color:var(--text-dim)}
+.review-a .g{color:#1a8a4a;font-weight:600}.review-a .r{color:#c0392b;font-weight:600}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:999;animation:fadeIn .2s ease}
+.modal-box{background:var(--surface);border-radius:16px;padding:32px;max-width:400px;width:90%;box-shadow:var(--shadow-lg);text-align:center}
+.modal-box h3{font-family:'Outfit',sans-serif;font-size:1.2rem;margin-bottom:8px}
+.modal-box p{color:var(--text-dim);font-size:.9rem;margin-bottom:24px}
+.modal-actions{display:flex;gap:10px;justify-content:center}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:600px){.quiz-wrapper{padding:16px 12px 40px}.setup-hero{padding:32px 20px}.setup-hero h2{font-size:1.4rem}.question-card{padding:24px 20px}.q-text{font-size:1.05rem}.score-display{font-size:2.4rem}}
+</style>
+</head>
+<body>
+<div class="quiz-wrapper">
+
+  <div class="screen active" id="screen-loading">
+    <div class="loading-screen">
+      <div class="spinner-lg"></div>
+      <p>Ładowanie pytań…</p>
+      <div class="error-box" id="load-error" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-setup">
+    <div class="setup-hero">
+      <div class="icon">🎯</div>
+      <h2>Gotowy na quiz?</h2>
+      <p>Sprawdź swoją wiedzę. Pytania losowane z pełnej bazy.</p>
+      <div class="setup-stats">
+        <div class="stat-chip">📚 <span id="total-count">0</span> pytań w bazie</div>
+        <div class="stat-chip">🔀 losowa kolejność</div>
+      </div>
+      <div class="setup-grid" id="setup-grid"></div>
+      <div class="flagged-tile empty" id="flagged-tile" onclick="startFlagged()">
+        <span class="ft-icon">🚩</span>
+        <span class="ft-text">Oflagowane pytania</span>
+        <span class="ft-count" id="flagged-count">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-quiz">
+    <div class="quiz-toolbar">
+      <div class="quiz-toolbar-left"><button class="btn small ghost" onclick="confirmExit()">← Menu</button></div>
+      <div class="quiz-toolbar-right">
+        <div class="score-pill" id="score-pill">0 / 0</div>
+        <button class="btn small icon-btn" onclick="toggleFullscreen()" title="Pełny ekran">⛶</button>
+      </div>
+    </div>
+    <div class="progress-section">
+      <div class="progress-text"><span id="prog-label"></span><span id="prog-pct"></span></div>
+      <div class="progress-track"><div class="progress-bar" id="prog-bar" style="width:0%"></div></div>
+    </div>
+    <div class="question-card" id="q-card">
+      <div class="q-header">
+        <div class="q-label" id="q-label"></div>
+        <button class="flag-btn" id="flag-btn" onclick="toggleFlag()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          <span id="flag-label">Oflaguj</span>
+        </button>
+      </div>
+      <div class="q-text" id="q-text"></div>
+    </div>
+    <div class="answers-grid" id="answers"></div>
+    <div id="feedback" style="display:none"></div>
+    <div class="nav-row">
+      <div class="nav-row-left"><button class="btn small" id="btn-prev" onclick="goTo(current-1)" disabled>← Poprzednie</button></div>
+      <div class="nav-row-right">
+        <button class="btn small primary" id="btn-next" onclick="goTo(current+1)">Następne →</button>
+        <button class="btn small primary" id="btn-finish" onclick="showResults()" style="display:none">Zakończ ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-results">
+    <div class="results-card">
+      <div class="results-icon" id="res-icon"></div>
+      <h2>Wyniki quizu</h2>
+      <div class="score-display" id="res-score"></div>
+      <div class="score-subtitle" id="res-detail"></div>
+      <div class="results-actions">
+        <button class="btn primary" onclick="restartSame()">🔄 Powtórz</button>
+        <button class="btn" onclick="goSetup()">← Menu</button>
+      </div>
+    </div>
+    <div class="review-section">
+      <h3>📋 Przegląd odpowiedzi</h3>
+      <div id="review-list"></div>
+    </div>
+  </div>
+
+</div>
+<div id="modal-root"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  Parametr URL: ?file=nazwa.xlsx                                ║
+// ║  Domyślny plik gdy brak parametru (opcjonalnie):               ║
+// ╚══════════════════════════════════════════════════════════════════╝
+const DEFAULT_FILE = '';  // np. 'pytania.xlsx' — zostaw puste jeśli chcesz wymusić parametr
+
+const urlParams = new URLSearchParams(window.location.search);
+const FILE_NAME = urlParams.get('file') || DEFAULT_FILE;
+const EXCEL_URL = FILE_NAME ? './' + FILE_NAME : '';
+const STORAGE_KEY = 'qf_' + (FILE_NAME || 'default');
+
+let RAW=[],pool=[],current=0,score=0,chosenCount=0,isFlaggedMode=false,state=[];
+let globalFlagged=new Set();
+try{const s=localStorage.getItem(STORAGE_KEY);if(s)globalFlagged=new Set(JSON.parse(s))}catch(e){}
+function saveFlagged(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify([...globalFlagged]))}catch(e){}}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const el=document.getElementById(id);el.classList.add('active');el.style.animation='none';el.offsetHeight;el.style.animation='fadeIn .4s ease'}
+
+async function init(){
+  if(!EXCEL_URL){
+    document.getElementById('load-error').style.display='block';
+    document.getElementById('load-error').textContent='Brak parametru ?file= w adresie URL. Użyj np.: quiz.html?file=modul1.xlsx';
+    return;
+  }
+  try{
+    const r=await fetch(EXCEL_URL);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.arrayBuffer();
+    const wb=XLSX.read(d,{type:'array'});
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    if(!rows.length)throw new Error('Arkusz jest pusty.');
+    const keys=Object.keys(rows[0]);
+    const find=p=>keys.find(k=>{const l=k.toLowerCase().trim();return p.some(x=>l.includes(x))});
+    const qC=find(['question','pytanie']);
+    const cC=find(['correct','poprawna','prawidłowa']);
+    const i1=keys.find(k=>/incorrect.*1|błędn.*1|niepopraw.*1/i.test(k));
+    const i2=keys.find(k=>/incorrect.*2|błędn.*2|niepopraw.*2/i.test(k));
+    const i3=keys.find(k=>/incorrect.*3|błędn.*3|niepopraw.*3/i.test(k));
+    if(!qC||!cC)throw new Error('Brak kolumn Question / Correct Answer.');
+    RAW=[];
+    for(const row of rows){
+      const q=String(row[qC]||'').trim(),c=String(row[cC]||'').trim();
+      if(!q||!c)continue;
+      const w=[i1,i2,i3].map(k=>k?String(row[k]||'').trim():'').filter(Boolean);
+      if(!w.length)continue;
+      RAW.push({q,c,w});
+    }
+    if(!RAW.length)throw new Error('Brak poprawnych pytań.');
+    goSetup();
+  }catch(e){
+    document.getElementById('load-error').style.display='block';
+    document.getElementById('load-error').textContent='Nie udało się załadować pytań: '+e.message;
+  }
+}
+init();
+
+function goSetup(){
+  document.getElementById('total-count').textContent=RAW.length;
+  const g=document.getElementById('setup-grid');g.innerHTML='';
+  [10,20,50,100].forEach(n=>{if(n>RAW.length)return;const b=document.createElement('button');b.className='btn';b.textContent=n+' pytań';b.onclick=()=>startQuiz(n);g.appendChild(b)});
+  const ab=document.createElement('button');ab.className='btn primary';ab.textContent='Wszystkie pytania';ab.onclick=()=>startQuiz(0);g.appendChild(ab);
+  updateFlaggedTile();
+  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+  document.body.classList.remove('is-fullscreen');
+  show('screen-setup');
+}
+function updateFlaggedTile(){
+  const v=RAW.filter(d=>globalFlagged.has(d.q)).length;
+  document.getElementById('flagged-count').textContent=v;
+  document.getElementById('flagged-tile').classList.toggle('empty',v===0);
+}
+function startQuiz(n){
+  isFlaggedMode=false;let all=RAW.map(d=>({question:d.q,correct:d.c,wrong:d.w}));shuffle(all);
+  pool=n>0?all.slice(0,Math.min(n,all.length)):all;chosenCount=pool.length;initQuiz();
+}
+function startFlagged(){
+  const fq=RAW.filter(d=>globalFlagged.has(d.q));if(!fq.length)return;
+  isFlaggedMode=true;pool=fq.map(d=>({question:d.q,correct:d.c,wrong:d.w}));shuffle(pool);chosenCount=pool.length;initQuiz();
+}
+function initQuiz(){
+  current=0;score=0;
+  state=pool.map(q=>{const sh=shuffle([q.correct,...q.wrong]);return{question:q.question,correct:q.correct,wrong:q.wrong,shuffled:sh,answered:false,selectedIdx:-1,isCorrect:false,flagged:globalFlagged.has(q.question)}});
+  show('screen-quiz');renderQ();
+}
+function renderQ(){
+  const s=state[current],total=state.length,answered=state.filter(x=>x.answered).length;
+  score=state.filter(x=>x.isCorrect).length;
+  const pct=Math.round((answered/total)*100);
+  document.getElementById('prog-label').textContent='Pytanie '+(current+1)+' z '+total;
+  document.getElementById('prog-pct').textContent=answered+' odpowiedzi ('+pct+'%)';
+  document.getElementById('prog-bar').style.width=pct+'%';
+  document.getElementById('score-pill').textContent=score+' / '+answered;
+  document.getElementById('q-card').classList.toggle('flagged',s.flagged);
+  document.getElementById('q-label').textContent='Pytanie '+(current+1);
+  document.getElementById('q-text').textContent=s.question;
+  document.getElementById('flag-btn').classList.toggle('is-flagged',s.flagged);
+  document.getElementById('flag-label').textContent=s.flagged?'Oflagowane':'Oflaguj';
+  const letters=['A','B','C','D'],c=document.getElementById('answers');c.innerHTML='';
+  s.shuffled.forEach((a,i)=>{const b=document.createElement('button');b.className='answer-btn';
+    if(s.answered){b.disabled=true;if(a===s.correct)b.classList.add('is-correct');else if(i===s.selectedIdx&&!s.isCorrect)b.classList.add('is-wrong')}
+    b.innerHTML='<span class="badge">'+letters[i]+'</span><span>'+a+'</span>';
+    if(!s.answered)b.onclick=()=>pick(i);c.appendChild(b)});
+  const fb=document.getElementById('feedback');
+  if(s.answered){fb.style.display='flex';
+    if(s.isCorrect){fb.className='feedback-bar correct';fb.innerHTML='<span>✓</span> Poprawna odpowiedź!'}
+    else{fb.className='feedback-bar wrong';fb.innerHTML='<span>✗</span> Błędna — poprawna: '+s.correct}
+  }else fb.style.display='none';
+  document.getElementById('btn-prev').disabled=(current===0);
+  const isLast=current===total-1,allDone=state.every(x=>x.answered);
+  document.getElementById('btn-next').style.display=isLast?'none':'inline-flex';
+  document.getElementById('btn-finish').style.display=(isLast||allDone)?'inline-flex':'none';
+}
+function pick(idx){const s=state[current];if(s.answered)return;s.answered=true;s.selectedIdx=idx;s.isCorrect=(s.shuffled[idx]===s.correct);renderQ()}
+function goTo(idx){if(idx<0||idx>=state.length)return;current=idx;const q=document.getElementById('screen-quiz');q.style.animation='none';q.offsetHeight;q.style.animation='fadeIn .25s ease';renderQ()}
+function toggleFlag(){const s=state[current];s.flagged=!s.flagged;if(s.flagged)globalFlagged.add(s.question);else globalFlagged.delete(s.question);saveFlagged();renderQ()}
+function showResults(){
+  score=state.filter(x=>x.isCorrect).length;const answered=state.filter(x=>x.answered).length;
+  if(!answered){alert('Odpowiedz na przynajmniej jedno pytanie!');return}
+  show('screen-results');const pct=Math.round((score/answered)*100);
+  document.getElementById('res-icon').textContent=pct>=80?'🏆':pct>=50?'👍':'📖';
+  document.getElementById('res-score').textContent=pct+'%';
+  document.getElementById('res-detail').textContent=score+' poprawnych z '+answered+' odpowiedzi ('+state.length+' pytań łącznie)';
+  const list=document.getElementById('review-list');list.innerHTML='';
+  state.forEach((s,i)=>{if(!s.answered)return;const d=document.createElement('div');
+    d.className='review-item '+(s.isCorrect?'ok':'fail');
+    d.innerHTML='<div class="review-q">'+(i+1)+'. '+s.question+'</div><div class="review-a">'+(s.isCorrect?'<span class="g">✓ '+s.shuffled[s.selectedIdx]+'</span>':'Twoja: <span class="r">✗ '+s.shuffled[s.selectedIdx]+'</span> · Poprawna: <span class="g">✓ '+s.correct+'</span>')+'</div>';
+    list.appendChild(d)});
+}
+function restartSame(){isFlaggedMode?startFlagged():startQuiz(chosenCount===RAW.length?0:chosenCount)}
+function confirmExit(){
+  const answered=state.filter(x=>x.answered).length;
+  if(!answered){goSetup();return}
+  document.getElementById('modal-root').innerHTML='<div class="modal-overlay" onclick="closeModal(event)"><div class="modal-box"><h3>Wyjść z quizu?</h3><p>Odpowiedziałeś na '+answered+' z '+state.length+' pytań. Postęp zostanie utracony.</p><div class="modal-actions"><button class="btn small" onclick="closeModal()">Kontynuuj</button><button class="btn small primary" onclick="closeModal();goSetup()">Wyjdź</button></div></div></div>';
+}
+function closeModal(e){if(e&&e.target&&!e.target.classList.contains('modal-overlay'))return;document.getElementById('modal-root').innerHTML=''}
+function toggleFullscreen(){
+  if(!document.fullscreenElement)document.documentElement.requestFullscreen().then(()=>document.body.classList.add('is-fullscreen')).catch(()=>{});
+  else document.exitFullscreen().then(()=>document.body.classList.remove('is-fullscreen')).catch(()=>{});
+}
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)document.body.classList.remove('is-fullscreen')});
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('screen-quiz').classList.contains('active'))return;
+  if(e.key==='ArrowRight'||e.key==='d')goTo(current+1);
+  if(e.key==='ArrowLeft'||e.key==='a')goTo(current-1);
+  if(e.key==='f')toggleFlag();
+  if(e.key>='1'&&e.key<='4'){const idx=parseInt(e.key)-1;if(idx<state[current].shuffled.length)pick(idx)}
+});
+</script>
+</body>
+</html>
