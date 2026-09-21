@@ -1,0 +1,12 @@
+Question,Correct Answer,Incorrect Answer 1,Incorrect Answer 2 (Optional),Incorrect Answer 3 (Optional)
+"Dokument formalnie zatwierdzający powołanie projektu, wyznaczający jego cele i wskaźniki, rezultaty projektu, ramowy harmonogram i budżet oraz kluczowe role i odpowiedzialności to:",karta projektu,plan kierowania projektem,studium wykonalności projektu,plan jakości projektu
+W którym etapie cyklu życia projektu powstaje WBS (Work Breakdown Structure)?,planowanie projektu,inicjowanie projektu,realizacja projektu,zamykanie projektu
+"Który dokument zawiera najczęściej uzasadnienie projektu, główne cele oraz kluczowe ryzyka?",karta projektu,harmonogram,rejestr zmian,raport końcowy
+"Dokument, który wykazuje, dlaczego opłaca się zrealizować projekt, i zawiera m.in. opis problemu oraz wpływ projektu na realizację strategii, to:",uzasadnienie biznesowe (business case),studium wykonalności (feasibility study),deklaracja pracy (SOW),struktura podziału pracy (WBS)
+"Bardzo szczegółowy dokument, służący do oceny złożonych projektów z punktu widzenia technicznego, finansowego i organizacyjnego, to:",studium wykonalności (feasibility study),uzasadnienie biznesowe (business case),deklaracja pracy (SOW),karta projektu
+W studium wykonalności ocenia się projekt według trzech kryteriów:,"celowości, wykonalności i efektywności","celowości, kwalifikowalności i efektywności","wykonalności, rentowności i płynności","zakresu, czasu i kosztu"
+"W studium wykonalności pytanie, czy korzyści z projektu przewyższą jego koszty, dotyczy kryterium:",efektywności,celowości,wykonalności,ryzyka
+Deklaracja pracy (SOW) powinna zawierać między innymi:,"mierzalne kryteria sukcesu, listę użytkowników produktu i opis rezultatu",analizę kosztów i korzyści oraz analizę alternatywnych rozwiązań dla projektu,"podział prac projektu na fazy, etapy i zadania wraz z zasadą 100%","ocenę celowości, wykonalności i efektywności projektu z różnych punktów widzenia"
+Struktura podziału pracy (WBS) dzieli projekt na trzy poziomy:,"fazy, etapy i zadania","programy, projekty i zadania","cele, produkty i zasoby","inicjowanie, planowanie i zamykanie"
+"Zasada 100% w strukturze podziału pracy (WBS) oznacza, że WBS musi:",obejmować wszystkie prace potrzebne do zrealizowania projektu,zostać w całości zatwierdzona przez sponsora,wykorzystywać cały przyznany budżet projektu,być realizowana przez jednego wykonawcę
+Zgodnie z regułą 8/80 zadania w strukturze podziału pracy (WBS) powinny trwać:,dłużej niż 8 i krócej niż 80 godzin,krócej niż 8 godzin,dłużej niż 80 godzin,dokładnie 80 godzin
